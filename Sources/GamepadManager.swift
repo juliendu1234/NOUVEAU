@@ -24,6 +24,10 @@ class GamepadManager {
     private var lastControllerCheckTime: Date?
     private var controllerCheckTimer: Timer?
     
+    // L2/R2 trigger state tracking (to trigger only once at 90%)
+    private var l2WasAboveThreshold = false
+    private var r2WasAboveThreshold = false
+    
     // NOUVEAU : IOHIDManager pour monitoring global
     private var hidManager: IOHIDManager?
     private var isGlobalMonitoringActive = false
@@ -323,16 +327,24 @@ class GamepadManager {
         }
         
         // L2 (Left Trigger) - V Speed -5% (trigger at 90%)
-        gamepad.leftTrigger.pressedChangedHandler = { [weak self] (button, value, pressed) in
-            if value >= 0.9 {
-                self?.statusWindowController?.adjustVzMax(by: -5.0)
+        gamepad.leftTrigger.valueChangedHandler = { [weak self] (button, value, pressed) in
+            guard let self = self else { return }
+            if value >= 0.9 && !self.l2WasAboveThreshold {
+                self.l2WasAboveThreshold = true
+                self.statusWindowController?.adjustVzMax(by: -5.0)
+            } else if value < 0.9 {
+                self.l2WasAboveThreshold = false
             }
         }
         
         // R2 (Right Trigger) - Angle Max -5% (trigger at 90%)
-        gamepad.rightTrigger.pressedChangedHandler = { [weak self] (button, value, pressed) in
-            if value >= 0.9 {
-                self?.statusWindowController?.adjustEulerAngle(by: -5.0)
+        gamepad.rightTrigger.valueChangedHandler = { [weak self] (button, value, pressed) in
+            guard let self = self else { return }
+            if value >= 0.9 && !self.r2WasAboveThreshold {
+                self.r2WasAboveThreshold = true
+                self.statusWindowController?.adjustEulerAngle(by: -5.0)
+            } else if value < 0.9 {
+                self.r2WasAboveThreshold = false
             }
         }
         

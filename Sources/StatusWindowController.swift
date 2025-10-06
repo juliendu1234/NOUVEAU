@@ -359,7 +359,7 @@ class StatusWindowController: NSWindowController {
             mappingBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             mappingBox.heightAnchor.constraint(equalToConstant: 310),
             
-            saveLocationBox.topAnchor.constraint(equalTo: mappingBox.bottomAnchor, constant: 10),
+            saveLocationBox.topAnchor.constraint(equalTo: mappingBox.bottomAnchor, constant: 66),
             saveLocationBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             saveLocationBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             saveLocationBox.bottomAnchor.constraint(equalTo: container.bottomAnchor)
