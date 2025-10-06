@@ -677,6 +677,13 @@ class ARDroneController {
         sendCommand(atCommands.anim(animation: animation, duration: duration))
     }
     
+    // MARK: - Configuration Commands
+    
+    func setConfig(key: String, value: String) {
+        print("⚙️ Setting config: \(key) = \(value)")
+        sendCommand(atCommands.config(key: key, value: value))
+    }
+    
     // MARK: - Video Commands
     
     func startVideoRecording() {

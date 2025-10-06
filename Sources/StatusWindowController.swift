@@ -72,6 +72,16 @@ class StatusWindowController: NSWindowController {
     private let motor4TitleLabel = NSTextField(labelWithString: "M4:")
     private let motor4ValueLabel = NSTextField(labelWithString: "---")
     
+    // Control sliders
+    private let eulerAngleSlider = NSSlider()
+    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 0.25 rad")
+    private let altitudeMaxSlider = NSSlider()
+    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3000 mm")
+    private let vzMaxSlider = NSSlider()
+    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 1000 mm/s")
+    private let yawMaxSlider = NSSlider()
+    private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s")
+    
     private let wifiClient = CWWiFiClient.shared()
     private var lastObservedSSID: String?
     private var flightStartTime: Date?
@@ -460,6 +470,9 @@ class StatusWindowController: NSWindowController {
             (motor4TitleLabel, motor4ValueLabel)
         ], in: container, x: 20 + colWidth * 3, y: startY, rowHeight: rowHeight)
         
+        // Add control sliders section
+        setupControlSliders(in: container, startY: startY + rowHeight * 8 + 30)
+        
         return container
     }
     
@@ -475,6 +488,129 @@ class StatusWindowController: NSWindowController {
                 value.centerYAnchor.constraint(equalTo: title.centerYAnchor)
             ])
         }
+    }
+    
+    private func setupControlSliders(in container: NSView, startY: CGFloat) {
+        let sectionTitle = NSTextField(labelWithString: "⚙️ PARAMÈTRES DE CONTRÔLE")
+        sectionTitle.translatesAutoresizingMaskIntoConstraints = false
+        sectionTitle.font = NSFont.systemFont(ofSize: 14, weight: .bold)
+        sectionTitle.textColor = .systemGray
+        sectionTitle.isBordered = false
+        sectionTitle.backgroundColor = .clear
+        container.addSubview(sectionTitle)
+        
+        // Configure sliders
+        eulerAngleSlider.translatesAutoresizingMaskIntoConstraints = false
+        eulerAngleSlider.minValue = 0.0
+        eulerAngleSlider.maxValue = 0.52  // 30 degrees in radians
+        eulerAngleSlider.doubleValue = 0.25
+        eulerAngleSlider.target = self
+        eulerAngleSlider.action = #selector(eulerAngleChanged(_:))
+        
+        altitudeMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        altitudeMaxSlider.minValue = 500
+        altitudeMaxSlider.maxValue = 10000
+        altitudeMaxSlider.doubleValue = 3000
+        altitudeMaxSlider.target = self
+        altitudeMaxSlider.action = #selector(altitudeMaxChanged(_:))
+        
+        vzMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        vzMaxSlider.minValue = 200
+        vzMaxSlider.maxValue = 2000
+        vzMaxSlider.doubleValue = 1000
+        vzMaxSlider.target = self
+        vzMaxSlider.action = #selector(vzMaxChanged(_:))
+        
+        yawMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        yawMaxSlider.minValue = 0.7
+        yawMaxSlider.maxValue = 6.11
+        yawMaxSlider.doubleValue = 3.0
+        yawMaxSlider.target = self
+        yawMaxSlider.action = #selector(yawMaxChanged(_:))
+        
+        // Configure labels
+        for label in [eulerAngleLabel, altitudeMaxLabel, vzMaxLabel, yawMaxLabel] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+            label.textColor = .white
+            label.isBordered = false
+            label.backgroundColor = .clear
+        }
+        
+        // Add to container
+        container.addSubview(eulerAngleSlider)
+        container.addSubview(eulerAngleLabel)
+        container.addSubview(altitudeMaxSlider)
+        container.addSubview(altitudeMaxLabel)
+        container.addSubview(vzMaxSlider)
+        container.addSubview(vzMaxLabel)
+        container.addSubview(yawMaxSlider)
+        container.addSubview(yawMaxLabel)
+        
+        // Layout in 2 columns
+        let col1X: CGFloat = 20
+        let col2X: CGFloat = 480
+        let sliderWidth: CGFloat = 200
+        let rowHeight: CGFloat = 35
+        
+        NSLayoutConstraint.activate([
+            // Section title
+            sectionTitle.topAnchor.constraint(equalTo: container.topAnchor, constant: startY),
+            sectionTitle.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            
+            // Column 1 - Row 1: Euler Angle
+            eulerAngleLabel.topAnchor.constraint(equalTo: sectionTitle.bottomAnchor, constant: 15),
+            eulerAngleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            eulerAngleSlider.centerYAnchor.constraint(equalTo: eulerAngleLabel.centerYAnchor),
+            eulerAngleSlider.leadingAnchor.constraint(equalTo: eulerAngleLabel.trailingAnchor, constant: 10),
+            eulerAngleSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 1 - Row 2: VZ Max
+            vzMaxLabel.topAnchor.constraint(equalTo: eulerAngleLabel.bottomAnchor, constant: rowHeight),
+            vzMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            vzMaxSlider.centerYAnchor.constraint(equalTo: vzMaxLabel.centerYAnchor),
+            vzMaxSlider.leadingAnchor.constraint(equalTo: vzMaxLabel.trailingAnchor, constant: 10),
+            vzMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 2 - Row 1: Altitude Max
+            altitudeMaxLabel.topAnchor.constraint(equalTo: sectionTitle.bottomAnchor, constant: 15),
+            altitudeMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col2X),
+            altitudeMaxSlider.centerYAnchor.constraint(equalTo: altitudeMaxLabel.centerYAnchor),
+            altitudeMaxSlider.leadingAnchor.constraint(equalTo: altitudeMaxLabel.trailingAnchor, constant: 10),
+            altitudeMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 2 - Row 2: Yaw Max
+            yawMaxLabel.topAnchor.constraint(equalTo: altitudeMaxLabel.bottomAnchor, constant: rowHeight),
+            yawMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col2X),
+            yawMaxSlider.centerYAnchor.constraint(equalTo: yawMaxLabel.centerYAnchor),
+            yawMaxSlider.leadingAnchor.constraint(equalTo: yawMaxLabel.trailingAnchor, constant: 10),
+            yawMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth)
+        ])
+    }
+    
+    // Slider action handlers
+    @objc private func eulerAngleChanged(_ sender: NSSlider) {
+        let value = sender.doubleValue
+        eulerAngleLabel.stringValue = String(format: "Max Angle: %.2f rad", value)
+        droneController.setConfig(key: "control:euler_angle_max", value: String(format: "%.2f", value))
+    }
+    
+    @objc private func altitudeMaxChanged(_ sender: NSSlider) {
+        let value = Int(sender.doubleValue)
+        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %d mm", value)
+        droneController.setConfig(key: "control:altitude_max", value: "\(value)")
+    }
+    
+    @objc private func vzMaxChanged(_ sender: NSSlider) {
+        let value = Int(sender.doubleValue)
+        vzMaxLabel.stringValue = String(format: "Max V Speed: %d mm/s", value)
+        droneController.setConfig(key: "control:control_vz_max", value: "\(value)")
+    }
+    
+    @objc private func yawMaxChanged(_ sender: NSSlider) {
+        let value = sender.doubleValue
+        yawMaxLabel.stringValue = String(format: "Max Yaw: %.2f rad/s", value)
+        droneController.setConfig(key: "control:control_yaw", value: String(format: "%.2f", value))
     }
     
     @objc private func ssidFieldChanged(_ sender: NSTextField) {
