@@ -622,6 +622,7 @@ class ARDroneController {
     
     func takeoff() {
         print("🚁 Takeoff")
+        lastInputTime = Date()
         sendCommand(atCommands.ref(ATCommands.ControlFlags.takeoff))
     }
     
