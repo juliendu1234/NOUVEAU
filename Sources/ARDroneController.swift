@@ -622,8 +622,12 @@ class ARDroneController {
     
     func takeoff() {
         print("🚁 Takeoff")
-        lastInputTime = Date()
-        sendCommand(atCommands.ref(ATCommands.ControlFlags.takeoff))
+        // Calibrate horizontal reference before takeoff (AR.Drone SDK best practice)
+        sendCommand(atCommands.ftrim())
+        // Small delay to let flat trim complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.sendCommand(self!.atCommands.ref(ATCommands.ControlFlags.takeoff))
+        }
     }
     
     func land() {
