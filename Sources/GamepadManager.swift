@@ -304,14 +304,8 @@ class GamepadManager {
         }
         
         // STICKS ANALOGIQUES
-        gamepad.valueChangedHandler = { [weak self] (_: GCExtendedGamepad, element: GCControllerElement) in
-            // Only process stick movements, ignore button presses to avoid false commands
-            if element == gamepad.leftThumbstick.xAxis || 
-               element == gamepad.leftThumbstick.yAxis ||
-               element == gamepad.rightThumbstick.xAxis || 
-               element == gamepad.rightThumbstick.yAxis {
-                self?.handleControllerInput(gamepad)
-            }
+        gamepad.valueChangedHandler = { [weak self] (_: GCExtendedGamepad, _: GCControllerElement) in
+            self?.handleControllerInput(gamepad)
         }
         
             }
