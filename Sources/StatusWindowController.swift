@@ -82,6 +82,8 @@ class StatusWindowController: NSWindowController {
     private let yawMaxSlider = NSSlider()
     private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s (42%)")
     
+    private var saveLocationPathField: NSTextField?
+    
     private let wifiClient = CWWiFiClient.shared()
     private var lastObservedSSID: String?
     private var flightStartTime: Date?
@@ -109,6 +111,12 @@ class StatusWindowController: NSWindowController {
         setupCallbacks()
         startStatusUpdates()
         startWiFiMonitoring()
+        
+        // Set initial save location from preferences
+        if let savedPath = UserDefaults.standard.string(forKey: "SaveLocationPath"),
+           let url = URL(string: "file://\(savedPath)") {
+            droneController.videoHandler.setSaveLocation(url)
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -315,10 +323,10 @@ class StatusWindowController: NSWindowController {
         container.translatesAutoresizingMaskIntoConstraints = false
         
         let telemetryBox = createTelemetrySection()
-        let mappingBox = createMappingSection()
+        let mappingAndSaveBox = createMappingAndSaveSection()
         
         container.addSubview(telemetryBox)
-        container.addSubview(mappingBox)
+        container.addSubview(mappingAndSaveBox)
         
         NSLayoutConstraint.activate([
             telemetryBox.topAnchor.constraint(equalTo: container.topAnchor),
@@ -326,10 +334,35 @@ class StatusWindowController: NSWindowController {
             telemetryBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             telemetryBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.58),
             
+            mappingAndSaveBox.topAnchor.constraint(equalTo: container.topAnchor),
+            mappingAndSaveBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            mappingAndSaveBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            mappingAndSaveBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.4)
+        ])
+        
+        return container
+    }
+    
+    private func createMappingAndSaveSection() -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let mappingBox = createMappingSection()
+        let saveLocationBox = createSaveLocationSection()
+        
+        container.addSubview(mappingBox)
+        container.addSubview(saveLocationBox)
+        
+        NSLayoutConstraint.activate([
             mappingBox.topAnchor.constraint(equalTo: container.topAnchor),
+            mappingBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             mappingBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            mappingBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            mappingBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.4)
+            mappingBox.heightAnchor.constraint(equalToConstant: 310),
+            
+            saveLocationBox.topAnchor.constraint(equalTo: mappingBox.bottomAnchor, constant: 10),
+            saveLocationBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            saveLocationBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            saveLocationBox.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
         return container
@@ -672,10 +705,10 @@ class StatusWindowController: NSWindowController {
             ("□", "Atterrissage", .systemPink),
             ("△", "Arrêt d'urgence", .systemRed),
             ("○", "Reset urgence", .systemGreen),
-            ("L1", "Disponible", .systemGray),
-            ("R1", "Disponible", .systemGray),
-            ("L2", "Disponible", .systemGray),
-            ("R2", "Disponible", .systemGray),
+            ("L1", "V Speed +5%", .systemOrange),
+            ("R1", "Angle Max +5%", .systemOrange),
+            ("L2", "V Speed -5%", .systemOrange),
+            ("R2", "Angle Max -5%", .systemOrange),
             ("Share", "Mode Hover", .systemCyan),
             ("Options", "Déconnexion", .systemIndigo),
             ("D-Pad ↑", "Caméra avant", .systemOrange),
@@ -761,6 +794,94 @@ class StatusWindowController: NSWindowController {
         ])
         
         return card
+    }
+    
+    private func createSaveLocationSection() -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor(calibratedWhite: 0.15, alpha: 1.0).cgColor
+        container.layer?.cornerRadius = 12
+        
+        let title = NSTextField(labelWithString: "💾 ENREGISTREMENT PHOTOS/VIDÉOS")
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+        title.textColor = .white
+        title.isBordered = false
+        title.backgroundColor = .clear
+        
+        let pathLabel = NSTextField(labelWithString: "Dossier:")
+        pathLabel.translatesAutoresizingMaskIntoConstraints = false
+        pathLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        pathLabel.textColor = .systemGray
+        pathLabel.isBordered = false
+        pathLabel.backgroundColor = .clear
+        
+        let pathField = NSTextField()
+        pathField.translatesAutoresizingMaskIntoConstraints = false
+        pathField.isEditable = false
+        pathField.isBordered = true
+        pathField.bezelStyle = .roundedBezel
+        pathField.font = NSFont.systemFont(ofSize: 12)
+        pathField.placeholderString = "Sélectionner un dossier..."
+        
+        // Load saved path or use default
+        let defaultPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].path
+        let savedPath = UserDefaults.standard.string(forKey: "SaveLocationPath") ?? defaultPath
+        pathField.stringValue = savedPath
+        
+        let selectButton = NSButton(title: "Parcourir...", target: self, action: #selector(selectSaveLocation))
+        selectButton.translatesAutoresizingMaskIntoConstraints = false
+        selectButton.bezelStyle = .rounded
+        selectButton.controlSize = .regular
+        
+        container.addSubview(title)
+        container.addSubview(pathLabel)
+        container.addSubview(pathField)
+        container.addSubview(selectButton)
+        
+        // Store reference for updates
+        self.saveLocationPathField = pathField
+        
+        NSLayoutConstraint.activate([
+            title.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            title.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            
+            pathLabel.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 15),
+            pathLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            
+            pathField.centerYAnchor.constraint(equalTo: pathLabel.centerYAnchor),
+            pathField.leadingAnchor.constraint(equalTo: pathLabel.trailingAnchor, constant: 8),
+            pathField.trailingAnchor.constraint(equalTo: selectButton.leadingAnchor, constant: -8),
+            
+            selectButton.centerYAnchor.constraint(equalTo: pathLabel.centerYAnchor),
+            selectButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            selectButton.widthAnchor.constraint(equalToConstant: 110)
+        ])
+        
+        return container
+    }
+    
+    @objc private func selectSaveLocation() {
+        let openPanel = NSOpenPanel()
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+        openPanel.canCreateDirectories = true
+        openPanel.allowsMultipleSelection = false
+        openPanel.title = "Sélectionner le dossier d'enregistrement"
+        openPanel.message = "Choisissez où sauvegarder les photos et vidéos"
+        
+        if let window = self.window {
+            openPanel.beginSheetModal(for: window) { [weak self] response in
+                if response == .OK, let url = openPanel.url {
+                    let path = url.path
+                    self?.saveLocationPathField?.stringValue = path
+                    UserDefaults.standard.set(path, forKey: "SaveLocationPath")
+                    self?.droneController.videoHandler.setSaveLocation(url)
+                    print("📁 Save location updated: \(path)")
+                }
+            }
+        }
     }
     
     // MARK: - Callbacks & Updates

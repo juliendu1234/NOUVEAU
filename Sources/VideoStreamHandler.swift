@@ -30,6 +30,7 @@ class VideoStreamHandler: NSObject {
     private var videoWriterInput: AVAssetWriterInput?
     private var recordingURL: URL?
     private var recordingStartTime: CMTime?
+    private var saveLocationURL: URL?
     
     // Frame buffer
     private var frameBuffer = Data()
@@ -234,15 +235,20 @@ class VideoStreamHandler: NSObject {
     
     // MARK: - Recording
     
+    func setSaveLocation(_ url: URL) {
+        self.saveLocationURL = url
+        print("💾 Save location set to: \(url.path)")
+    }
+    
     func startRecording() {
         guard !isRecording else { return }
         
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let basePath = saveLocationURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
         let timestamp = dateFormatter.string(from: Date())
         let filename = "ARDrone_\(timestamp).mp4"
-        recordingURL = documentsPath.appendingPathComponent(filename)
+        recordingURL = basePath.appendingPathComponent(filename)
         
         guard let url = recordingURL else { return }
         
