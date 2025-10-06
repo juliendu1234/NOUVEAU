@@ -195,7 +195,7 @@ class StatusWindowController: NSWindowController {
             bottomSection.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: y),
             bottomSection.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             bottomSection.widthAnchor.constraint(equalToConstant: 1640),
-            bottomSection.heightAnchor.constraint(equalToConstant: 380)
+            bottomSection.heightAnchor.constraint(equalToConstant: 500)  // Increased from 380 to fit sliders
         ])
         
         droneController.videoHandler.setupDisplayLayer(in: videoView)
