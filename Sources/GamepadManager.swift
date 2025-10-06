@@ -14,6 +14,7 @@ import IOKit.hid
 class GamepadManager {
     
     private let droneController: ARDroneController
+    private weak var statusWindowController: StatusWindowController?
     private var currentController: GCController?
     private var isFlying = false
     
@@ -23,6 +24,10 @@ class GamepadManager {
     private var lastControllerCheckTime: Date?
     private var controllerCheckTimer: Timer?
     
+    // L2/R2 trigger state tracking (to trigger only once at 90%)
+    private var l2WasAboveThreshold = false
+    private var r2WasAboveThreshold = false
+    
     // NOUVEAU : IOHIDManager pour monitoring global
     private var hidManager: IOHIDManager?
     private var isGlobalMonitoringActive = false
@@ -30,6 +35,10 @@ class GamepadManager {
     
     init(droneController: ARDroneController) {
         self.droneController = droneController
+    }
+    
+    func setStatusWindowController(_ controller: StatusWindowController) {
+        self.statusWindowController = controller
     }
     
     // MARK: - Controller Monitoring
@@ -300,6 +309,42 @@ class GamepadManager {
         gamepad.dpad.right.pressedChangedHandler = { [weak self] (button, value, pressed) in
             if pressed {
                 _ = self?.droneController.capturePhoto()
+            }
+        }
+        
+        // L1 (Left Shoulder) - V Speed +5%
+        gamepad.leftShoulder.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if pressed {
+                self?.statusWindowController?.adjustVzMax(by: 5.0)
+            }
+        }
+        
+        // R1 (Right Shoulder) - Angle Max +5%
+        gamepad.rightShoulder.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if pressed {
+                self?.statusWindowController?.adjustEulerAngle(by: 5.0)
+            }
+        }
+        
+        // L2 (Left Trigger) - V Speed -5% (trigger at 90%)
+        gamepad.leftTrigger.valueChangedHandler = { [weak self] (button, value, pressed) in
+            guard let self = self else { return }
+            if value >= 0.9 && !self.l2WasAboveThreshold {
+                self.l2WasAboveThreshold = true
+                self.statusWindowController?.adjustVzMax(by: -5.0)
+            } else if value < 0.9 {
+                self.l2WasAboveThreshold = false
+            }
+        }
+        
+        // R2 (Right Trigger) - Angle Max -5% (trigger at 90%)
+        gamepad.rightTrigger.valueChangedHandler = { [weak self] (button, value, pressed) in
+            guard let self = self else { return }
+            if value >= 0.9 && !self.r2WasAboveThreshold {
+                self.r2WasAboveThreshold = true
+                self.statusWindowController?.adjustEulerAngle(by: -5.0)
+            } else if value < 0.9 {
+                self.r2WasAboveThreshold = false
             }
         }
         

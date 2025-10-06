@@ -72,6 +72,18 @@ class StatusWindowController: NSWindowController {
     private let motor4TitleLabel = NSTextField(labelWithString: "M4:")
     private let motor4ValueLabel = NSTextField(labelWithString: "---")
     
+    // Control sliders
+    private let eulerAngleSlider = NSSlider()
+    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 14° (48%)")
+    private let altitudeMaxSlider = NSSlider()
+    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3 m (26%)")
+    private let vzMaxSlider = NSSlider()
+    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 1.00 m/s (44%)")
+    private let yawMaxSlider = NSSlider()
+    private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s (42%)")
+    
+    private var saveLocationPathField: NSTextField?
+    
     private let wifiClient = CWWiFiClient.shared()
     private var lastObservedSSID: String?
     private var flightStartTime: Date?
@@ -99,6 +111,12 @@ class StatusWindowController: NSWindowController {
         setupCallbacks()
         startStatusUpdates()
         startWiFiMonitoring()
+        
+        // Set initial save location from preferences
+        if let savedPath = UserDefaults.standard.string(forKey: "SaveLocationPath"),
+           let url = URL(string: "file://\(savedPath)") {
+            droneController.videoHandler.setSaveLocation(url)
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -157,7 +175,7 @@ class StatusWindowController: NSWindowController {
             contentContainer.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.heightAnchor)
         ])
         
-        var y: CGFloat = 25
+        var y: CGFloat = 14  // Reduced from 25 to bring content up
         
         let headerSection = createHeaderSection()
         contentContainer.addSubview(headerSection)
@@ -167,7 +185,7 @@ class StatusWindowController: NSWindowController {
             headerSection.widthAnchor.constraint(equalToConstant: 1640),
             headerSection.heightAnchor.constraint(equalToConstant: 80)
         ])
-        y += 100
+        y += 95  // Reduced from 100
         
         let middleSection = createMiddleSection()
         contentContainer.addSubview(middleSection)
@@ -177,7 +195,7 @@ class StatusWindowController: NSWindowController {
             middleSection.widthAnchor.constraint(equalToConstant: 1640),
             middleSection.heightAnchor.constraint(equalToConstant: 420)
         ])
-        y += 445
+        y += 435  // Reduced from 445
         
         let bottomSection = createBottomSectionVertical()
         contentContainer.addSubview(bottomSection)
@@ -185,7 +203,7 @@ class StatusWindowController: NSWindowController {
             bottomSection.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: y),
             bottomSection.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             bottomSection.widthAnchor.constraint(equalToConstant: 1640),
-            bottomSection.heightAnchor.constraint(equalToConstant: 380)
+            bottomSection.heightAnchor.constraint(equalToConstant: 420)  // Reduced from 500, will fit better now
         ])
         
         droneController.videoHandler.setupDisplayLayer(in: videoView)
@@ -305,10 +323,10 @@ class StatusWindowController: NSWindowController {
         container.translatesAutoresizingMaskIntoConstraints = false
         
         let telemetryBox = createTelemetrySection()
-        let mappingBox = createMappingSection()
+        let mappingAndSaveBox = createMappingAndSaveSection()
         
         container.addSubview(telemetryBox)
-        container.addSubview(mappingBox)
+        container.addSubview(mappingAndSaveBox)
         
         NSLayoutConstraint.activate([
             telemetryBox.topAnchor.constraint(equalTo: container.topAnchor),
@@ -316,10 +334,35 @@ class StatusWindowController: NSWindowController {
             telemetryBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             telemetryBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.58),
             
+            mappingAndSaveBox.topAnchor.constraint(equalTo: container.topAnchor),
+            mappingAndSaveBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            mappingAndSaveBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            mappingAndSaveBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.4)
+        ])
+        
+        return container
+    }
+    
+    private func createMappingAndSaveSection() -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let mappingBox = createMappingSection()
+        let saveLocationBox = createSaveLocationSection()
+        
+        container.addSubview(mappingBox)
+        container.addSubview(saveLocationBox)
+        
+        NSLayoutConstraint.activate([
             mappingBox.topAnchor.constraint(equalTo: container.topAnchor),
+            mappingBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             mappingBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            mappingBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            mappingBox.widthAnchor.constraint(equalTo: container.widthAnchor, multiplier: 0.4)
+            mappingBox.heightAnchor.constraint(equalToConstant: 340),  // Changed from 310 to 340
+            
+            saveLocationBox.topAnchor.constraint(equalTo: mappingBox.bottomAnchor, constant: 14),  // Changed from 66 to 14
+            saveLocationBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            saveLocationBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            saveLocationBox.heightAnchor.constraint(equalToConstant: 80)  // Fixed height for save location box
         ])
         
         return container
@@ -431,17 +474,24 @@ class StatusWindowController: NSWindowController {
         let rowHeight: CGFloat = 38
         let startY: CGFloat = 55
         
+        // Column 1: État, Mode, Motors (moved here from column 4)
         layoutColumn(labels: [
             (stateTitleLabel, stateValueLabel),
-            (modeTitleLabel, modeValueLabel)
+            (modeTitleLabel, modeValueLabel),
+            (motor1TitleLabel, motor1ValueLabel),
+            (motor2TitleLabel, motor2ValueLabel),
+            (motor3TitleLabel, motor3ValueLabel),
+            (motor4TitleLabel, motor4ValueLabel)
         ], in: container, x: 20, y: startY, rowHeight: rowHeight)
         
+        // Column 2: Pitch, Roll, Yaw
         layoutColumn(labels: [
             (pitchTitleLabel, pitchValueLabel),
             (rollTitleLabel, rollValueLabel),
             (yawTitleLabel, yawValueLabel)
         ], in: container, x: 20 + colWidth, y: startY, rowHeight: rowHeight)
         
+        // Column 3: Altitude, Speeds, Heading
         layoutColumn(labels: [
             (altTitleLabel, altValueLabel),
             (vSpeedTitleLabel, vSpeedValueLabel),
@@ -449,16 +499,16 @@ class StatusWindowController: NSWindowController {
             (headingTitleLabel, headingValueLabel)
         ], in: container, x: 20 + colWidth * 2, y: startY, rowHeight: rowHeight)
         
+        // Column 4: Battery, Voltage, Current, Temp (motors removed)
         layoutColumn(labels: [
             (battTitleLabel, battValueLabel),
             (voltTitleLabel, voltValueLabel),
             (currentTitleLabel, currentValueLabel),
-            (tempTitleLabel, tempValueLabel),
-            (motor1TitleLabel, motor1ValueLabel),
-            (motor2TitleLabel, motor2ValueLabel),
-            (motor3TitleLabel, motor3ValueLabel),
-            (motor4TitleLabel, motor4ValueLabel)
+            (tempTitleLabel, tempValueLabel)
         ], in: container, x: 20 + colWidth * 3, y: startY, rowHeight: rowHeight)
+        
+        // Add control sliders section - now positioned after M4 (6th row) + 14px gap
+        setupControlSliders(in: container, startY: startY + rowHeight * 6 + 14)
         
         return container
     }
@@ -475,6 +525,153 @@ class StatusWindowController: NSWindowController {
                 value.centerYAnchor.constraint(equalTo: title.centerYAnchor)
             ])
         }
+    }
+    
+    private func setupControlSliders(in container: NSView, startY: CGFloat) {
+        let sectionTitle = NSTextField(labelWithString: "⚙️ PARAMÈTRES DE CONTRÔLE")
+        sectionTitle.translatesAutoresizingMaskIntoConstraints = false
+        sectionTitle.font = NSFont.systemFont(ofSize: 14, weight: .bold)
+        sectionTitle.textColor = .systemGray
+        sectionTitle.isBordered = false
+        sectionTitle.backgroundColor = .clear
+        container.addSubview(sectionTitle)
+        
+        // Configure sliders
+        eulerAngleSlider.translatesAutoresizingMaskIntoConstraints = false
+        eulerAngleSlider.minValue = 0.0
+        eulerAngleSlider.maxValue = 0.52  // 30 degrees in radians
+        eulerAngleSlider.doubleValue = 0.25
+        eulerAngleSlider.target = self
+        eulerAngleSlider.action = #selector(eulerAngleChanged(_:))
+        
+        altitudeMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        altitudeMaxSlider.minValue = 500
+        altitudeMaxSlider.maxValue = 10000
+        altitudeMaxSlider.doubleValue = 3000
+        altitudeMaxSlider.target = self
+        altitudeMaxSlider.action = #selector(altitudeMaxChanged(_:))
+        
+        vzMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        vzMaxSlider.minValue = 200
+        vzMaxSlider.maxValue = 2000
+        vzMaxSlider.doubleValue = 1000
+        vzMaxSlider.target = self
+        vzMaxSlider.action = #selector(vzMaxChanged(_:))
+        
+        yawMaxSlider.translatesAutoresizingMaskIntoConstraints = false
+        yawMaxSlider.minValue = 0.7
+        yawMaxSlider.maxValue = 6.11
+        yawMaxSlider.doubleValue = 3.0
+        yawMaxSlider.target = self
+        yawMaxSlider.action = #selector(yawMaxChanged(_:))
+        
+        // Configure labels
+        for label in [eulerAngleLabel, altitudeMaxLabel, vzMaxLabel, yawMaxLabel] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+            label.textColor = .white
+            label.isBordered = false
+            label.backgroundColor = .clear
+        }
+        
+        // Add to container
+        container.addSubview(eulerAngleSlider)
+        container.addSubview(eulerAngleLabel)
+        container.addSubview(altitudeMaxSlider)
+        container.addSubview(altitudeMaxLabel)
+        container.addSubview(vzMaxSlider)
+        container.addSubview(vzMaxLabel)
+        container.addSubview(yawMaxSlider)
+        container.addSubview(yawMaxLabel)
+        
+        // Layout in 2 columns
+        let col1X: CGFloat = 20
+        let col2X: CGFloat = 480
+        let sliderWidth: CGFloat = 200
+        let rowHeight: CGFloat = 35
+        
+        NSLayoutConstraint.activate([
+            // Section title
+            sectionTitle.topAnchor.constraint(equalTo: container.topAnchor, constant: startY),
+            sectionTitle.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            
+            // Column 1 - Row 1: Euler Angle
+            eulerAngleLabel.topAnchor.constraint(equalTo: sectionTitle.bottomAnchor, constant: 15),
+            eulerAngleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            eulerAngleSlider.centerYAnchor.constraint(equalTo: eulerAngleLabel.centerYAnchor),
+            eulerAngleSlider.leadingAnchor.constraint(equalTo: eulerAngleLabel.trailingAnchor, constant: 10),
+            eulerAngleSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 1 - Row 2: VZ Max
+            vzMaxLabel.topAnchor.constraint(equalTo: eulerAngleLabel.bottomAnchor, constant: rowHeight),
+            vzMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col1X),
+            vzMaxSlider.centerYAnchor.constraint(equalTo: vzMaxLabel.centerYAnchor),
+            vzMaxSlider.leadingAnchor.constraint(equalTo: vzMaxLabel.trailingAnchor, constant: 10),
+            vzMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 2 - Row 1: Altitude Max
+            altitudeMaxLabel.topAnchor.constraint(equalTo: sectionTitle.bottomAnchor, constant: 15),
+            altitudeMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col2X),
+            altitudeMaxSlider.centerYAnchor.constraint(equalTo: altitudeMaxLabel.centerYAnchor),
+            altitudeMaxSlider.leadingAnchor.constraint(equalTo: altitudeMaxLabel.trailingAnchor, constant: 10),
+            altitudeMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth),
+            
+            // Column 2 - Row 2: Yaw Max
+            yawMaxLabel.topAnchor.constraint(equalTo: altitudeMaxLabel.bottomAnchor, constant: rowHeight),
+            yawMaxLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: col2X),
+            yawMaxSlider.centerYAnchor.constraint(equalTo: yawMaxLabel.centerYAnchor),
+            yawMaxSlider.leadingAnchor.constraint(equalTo: yawMaxLabel.trailingAnchor, constant: 10),
+            yawMaxSlider.widthAnchor.constraint(equalToConstant: sliderWidth)
+        ])
+    }
+    
+    // Slider action handlers
+    @objc private func eulerAngleChanged(_ sender: NSSlider) {
+        let radians = sender.doubleValue
+        let degrees = radians * 180.0 / .pi
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        eulerAngleLabel.stringValue = String(format: "Max Angle: %.0f° (%d%%)", degrees, percentage)
+        droneController.setConfig(key: "control:euler_angle_max", value: String(format: "%.2f", radians))
+    }
+    
+    @objc private func altitudeMaxChanged(_ sender: NSSlider) {
+        let millimeters = Int(sender.doubleValue)
+        let meters = Double(millimeters) / 1000.0
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %.1f m (%d%%)", meters, percentage)
+        droneController.setConfig(key: "control:altitude_max", value: "\(millimeters)")
+    }
+    
+    @objc private func vzMaxChanged(_ sender: NSSlider) {
+        let mmPerSec = Int(sender.doubleValue)
+        let mPerSec = Double(mmPerSec) / 1000.0  // mm/s to m/s
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        vzMaxLabel.stringValue = String(format: "Max V Speed: %.2f m/s (%d%%)", mPerSec, percentage)
+        droneController.setConfig(key: "control:control_vz_max", value: "\(mmPerSec)")
+    }
+    
+    @objc private func yawMaxChanged(_ sender: NSSlider) {
+        let value = sender.doubleValue
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        yawMaxLabel.stringValue = String(format: "Max Yaw: %.1f rad/s (%d%%)", value, percentage)
+        droneController.setConfig(key: "control:control_yaw", value: String(format: "%.2f", value))
+    }
+    
+    // Public methods for gamepad button control
+    func adjustEulerAngle(by percentChange: Double) {
+        let range = eulerAngleSlider.maxValue - eulerAngleSlider.minValue
+        let change = range * (percentChange / 100.0)
+        let newValue = max(eulerAngleSlider.minValue, min(eulerAngleSlider.maxValue, eulerAngleSlider.doubleValue + change))
+        eulerAngleSlider.doubleValue = newValue
+        eulerAngleChanged(eulerAngleSlider)
+    }
+    
+    func adjustVzMax(by percentChange: Double) {
+        let range = vzMaxSlider.maxValue - vzMaxSlider.minValue
+        let change = range * (percentChange / 100.0)
+        let newValue = max(vzMaxSlider.minValue, min(vzMaxSlider.maxValue, vzMaxSlider.doubleValue + change))
+        vzMaxSlider.doubleValue = newValue
+        vzMaxChanged(vzMaxSlider)
     }
     
     @objc private func ssidFieldChanged(_ sender: NSTextField) {
@@ -508,10 +705,10 @@ class StatusWindowController: NSWindowController {
             ("□", "Atterrissage", .systemPink),
             ("△", "Arrêt d'urgence", .systemRed),
             ("○", "Reset urgence", .systemGreen),
-            ("L1", "Disponible", .systemGray),
-            ("R1", "Disponible", .systemGray),
-            ("L2", "Disponible", .systemGray),
-            ("R2", "Disponible", .systemGray),
+            ("L1", "V Speed +5%", .systemOrange),
+            ("R1", "Angle Max +5%", .systemOrange),
+            ("L2", "V Speed -5%", .systemOrange),
+            ("R2", "Angle Max -5%", .systemOrange),
             ("Share", "Mode Hover", .systemCyan),
             ("Options", "Déconnexion", .systemIndigo),
             ("D-Pad ↑", "Caméra avant", .systemOrange),
@@ -597,6 +794,94 @@ class StatusWindowController: NSWindowController {
         ])
         
         return card
+    }
+    
+    private func createSaveLocationSection() -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor(calibratedWhite: 0.15, alpha: 1.0).cgColor
+        container.layer?.cornerRadius = 12
+        
+        let title = NSTextField(labelWithString: "💾 ENREGISTREMENT PHOTOS/VIDÉOS")
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+        title.textColor = .white
+        title.isBordered = false
+        title.backgroundColor = .clear
+        
+        let pathLabel = NSTextField(labelWithString: "Dossier:")
+        pathLabel.translatesAutoresizingMaskIntoConstraints = false
+        pathLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        pathLabel.textColor = .systemGray
+        pathLabel.isBordered = false
+        pathLabel.backgroundColor = .clear
+        
+        let pathField = NSTextField()
+        pathField.translatesAutoresizingMaskIntoConstraints = false
+        pathField.isEditable = false
+        pathField.isBordered = true
+        pathField.bezelStyle = .roundedBezel
+        pathField.font = NSFont.systemFont(ofSize: 12)
+        pathField.placeholderString = "Sélectionner un dossier..."
+        
+        // Load saved path or use default
+        let defaultPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].path
+        let savedPath = UserDefaults.standard.string(forKey: "SaveLocationPath") ?? defaultPath
+        pathField.stringValue = savedPath
+        
+        let selectButton = NSButton(title: "Parcourir...", target: self, action: #selector(selectSaveLocation))
+        selectButton.translatesAutoresizingMaskIntoConstraints = false
+        selectButton.bezelStyle = .rounded
+        selectButton.controlSize = .regular
+        
+        container.addSubview(title)
+        container.addSubview(pathLabel)
+        container.addSubview(pathField)
+        container.addSubview(selectButton)
+        
+        // Store reference for updates
+        self.saveLocationPathField = pathField
+        
+        NSLayoutConstraint.activate([
+            title.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            title.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            
+            pathLabel.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 15),
+            pathLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            
+            pathField.centerYAnchor.constraint(equalTo: pathLabel.centerYAnchor),
+            pathField.leadingAnchor.constraint(equalTo: pathLabel.trailingAnchor, constant: 8),
+            pathField.trailingAnchor.constraint(equalTo: selectButton.leadingAnchor, constant: -8),
+            
+            selectButton.centerYAnchor.constraint(equalTo: pathLabel.centerYAnchor),
+            selectButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            selectButton.widthAnchor.constraint(equalToConstant: 110)
+        ])
+        
+        return container
+    }
+    
+    @objc private func selectSaveLocation() {
+        let openPanel = NSOpenPanel()
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+        openPanel.canCreateDirectories = true
+        openPanel.allowsMultipleSelection = false
+        openPanel.title = "Sélectionner le dossier d'enregistrement"
+        openPanel.message = "Choisissez où sauvegarder les photos et vidéos"
+        
+        if let window = self.window {
+            openPanel.beginSheetModal(for: window) { [weak self] response in
+                if response == .OK, let url = openPanel.url {
+                    let path = url.path
+                    self?.saveLocationPathField?.stringValue = path
+                    UserDefaults.standard.set(path, forKey: "SaveLocationPath")
+                    self?.droneController.videoHandler.setSaveLocation(url)
+                    print("📁 Save location updated: \(path)")
+                }
+            }
+        }
     }
     
     // MARK: - Callbacks & Updates
