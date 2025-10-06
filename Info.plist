@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.quadlife.ARDroneController</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSMainStoryboardFile</key>
+    <string>Main</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2024 QuadLife. All rights reserved.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>This app needs Bluetooth access to connect to your DualShock 4 controller.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>This app needs Bluetooth access to connect to your DualShock 4 controller.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>This app needs local network access to communicate with your AR.Drone 2.0.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>ARDrone Controller nécessite la localisation pour détecter le réseau Wi-Fi du drone.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>ARDrone Controller utilise la localisation pour identifier automatiquement le réseau du drone.</string>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.device.wifi</key>
+    <true/>
+</dict>
+</plist>
