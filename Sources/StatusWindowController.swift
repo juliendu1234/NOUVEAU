@@ -74,11 +74,11 @@ class StatusWindowController: NSWindowController {
     
     // Control sliders
     private let eulerAngleSlider = NSSlider()
-    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 0.25 rad")
+    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 14°")
     private let altitudeMaxSlider = NSSlider()
-    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3000 mm")
+    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3 m")
     private let vzMaxSlider = NSSlider()
-    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 1000 mm/s")
+    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 3.6 km/h")
     private let yawMaxSlider = NSSlider()
     private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s")
     
@@ -594,26 +594,29 @@ class StatusWindowController: NSWindowController {
     
     // Slider action handlers
     @objc private func eulerAngleChanged(_ sender: NSSlider) {
-        let value = sender.doubleValue
-        eulerAngleLabel.stringValue = String(format: "Max Angle: %.2f rad", value)
-        droneController.setConfig(key: "control:euler_angle_max", value: String(format: "%.2f", value))
+        let radians = sender.doubleValue
+        let degrees = radians * 180.0 / .pi
+        eulerAngleLabel.stringValue = String(format: "Max Angle: %.0f°", degrees)
+        droneController.setConfig(key: "control:euler_angle_max", value: String(format: "%.2f", radians))
     }
     
     @objc private func altitudeMaxChanged(_ sender: NSSlider) {
-        let value = Int(sender.doubleValue)
-        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %d mm", value)
-        droneController.setConfig(key: "control:altitude_max", value: "\(value)")
+        let millimeters = Int(sender.doubleValue)
+        let meters = Double(millimeters) / 1000.0
+        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %.1f m", meters)
+        droneController.setConfig(key: "control:altitude_max", value: "\(millimeters)")
     }
     
     @objc private func vzMaxChanged(_ sender: NSSlider) {
-        let value = Int(sender.doubleValue)
-        vzMaxLabel.stringValue = String(format: "Max V Speed: %d mm/s", value)
-        droneController.setConfig(key: "control:control_vz_max", value: "\(value)")
+        let mmPerSec = Int(sender.doubleValue)
+        let kmPerHour = Double(mmPerSec) * 3.6 / 1000.0  // mm/s to km/h
+        vzMaxLabel.stringValue = String(format: "Max V Speed: %.1f km/h", kmPerHour)
+        droneController.setConfig(key: "control:control_vz_max", value: "\(mmPerSec)")
     }
     
     @objc private func yawMaxChanged(_ sender: NSSlider) {
         let value = sender.doubleValue
-        yawMaxLabel.stringValue = String(format: "Max Yaw: %.2f rad/s", value)
+        yawMaxLabel.stringValue = String(format: "Max Yaw: %.1f rad/s", value)
         droneController.setConfig(key: "control:control_yaw", value: String(format: "%.2f", value))
     }
     
