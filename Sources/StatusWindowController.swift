@@ -167,7 +167,7 @@ class StatusWindowController: NSWindowController {
             contentContainer.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.heightAnchor)
         ])
         
-        var y: CGFloat = 25
+        var y: CGFloat = 14  // Reduced from 25 to bring content up
         
         let headerSection = createHeaderSection()
         contentContainer.addSubview(headerSection)
@@ -177,7 +177,7 @@ class StatusWindowController: NSWindowController {
             headerSection.widthAnchor.constraint(equalToConstant: 1640),
             headerSection.heightAnchor.constraint(equalToConstant: 80)
         ])
-        y += 100
+        y += 95  // Reduced from 100
         
         let middleSection = createMiddleSection()
         contentContainer.addSubview(middleSection)
@@ -187,7 +187,7 @@ class StatusWindowController: NSWindowController {
             middleSection.widthAnchor.constraint(equalToConstant: 1640),
             middleSection.heightAnchor.constraint(equalToConstant: 420)
         ])
-        y += 445
+        y += 435  // Reduced from 445
         
         let bottomSection = createBottomSectionVertical()
         contentContainer.addSubview(bottomSection)
@@ -195,7 +195,7 @@ class StatusWindowController: NSWindowController {
             bottomSection.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: y),
             bottomSection.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
             bottomSection.widthAnchor.constraint(equalToConstant: 1640),
-            bottomSection.heightAnchor.constraint(equalToConstant: 500)  // Increased from 380 to fit sliders
+            bottomSection.heightAnchor.constraint(equalToConstant: 420)  // Reduced from 500, will fit better now
         ])
         
         droneController.videoHandler.setupDisplayLayer(in: videoView)
@@ -441,17 +441,24 @@ class StatusWindowController: NSWindowController {
         let rowHeight: CGFloat = 38
         let startY: CGFloat = 55
         
+        // Column 1: État, Mode, Motors (moved here from column 4)
         layoutColumn(labels: [
             (stateTitleLabel, stateValueLabel),
-            (modeTitleLabel, modeValueLabel)
+            (modeTitleLabel, modeValueLabel),
+            (motor1TitleLabel, motor1ValueLabel),
+            (motor2TitleLabel, motor2ValueLabel),
+            (motor3TitleLabel, motor3ValueLabel),
+            (motor4TitleLabel, motor4ValueLabel)
         ], in: container, x: 20, y: startY, rowHeight: rowHeight)
         
+        // Column 2: Pitch, Roll, Yaw
         layoutColumn(labels: [
             (pitchTitleLabel, pitchValueLabel),
             (rollTitleLabel, rollValueLabel),
             (yawTitleLabel, yawValueLabel)
         ], in: container, x: 20 + colWidth, y: startY, rowHeight: rowHeight)
         
+        // Column 3: Altitude, Speeds, Heading
         layoutColumn(labels: [
             (altTitleLabel, altValueLabel),
             (vSpeedTitleLabel, vSpeedValueLabel),
@@ -459,19 +466,16 @@ class StatusWindowController: NSWindowController {
             (headingTitleLabel, headingValueLabel)
         ], in: container, x: 20 + colWidth * 2, y: startY, rowHeight: rowHeight)
         
+        // Column 4: Battery, Voltage, Current, Temp (motors removed)
         layoutColumn(labels: [
             (battTitleLabel, battValueLabel),
             (voltTitleLabel, voltValueLabel),
             (currentTitleLabel, currentValueLabel),
-            (tempTitleLabel, tempValueLabel),
-            (motor1TitleLabel, motor1ValueLabel),
-            (motor2TitleLabel, motor2ValueLabel),
-            (motor3TitleLabel, motor3ValueLabel),
-            (motor4TitleLabel, motor4ValueLabel)
+            (tempTitleLabel, tempValueLabel)
         ], in: container, x: 20 + colWidth * 3, y: startY, rowHeight: rowHeight)
         
-        // Add control sliders section
-        setupControlSliders(in: container, startY: startY + rowHeight * 8 + 30)
+        // Add control sliders section - now positioned after M4 (6th row) + 14px gap
+        setupControlSliders(in: container, startY: startY + rowHeight * 6 + 14)
         
         return container
     }
