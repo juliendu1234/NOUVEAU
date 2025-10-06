@@ -74,13 +74,13 @@ class StatusWindowController: NSWindowController {
     
     // Control sliders
     private let eulerAngleSlider = NSSlider()
-    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 14°")
+    private let eulerAngleLabel = NSTextField(labelWithString: "Max Angle: 14° (48%)")
     private let altitudeMaxSlider = NSSlider()
-    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3 m")
+    private let altitudeMaxLabel = NSTextField(labelWithString: "Max Altitude: 3 m (26%)")
     private let vzMaxSlider = NSSlider()
-    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 3.6 km/h")
+    private let vzMaxLabel = NSTextField(labelWithString: "Max V Speed: 1.00 m/s (44%)")
     private let yawMaxSlider = NSSlider()
-    private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s")
+    private let yawMaxLabel = NSTextField(labelWithString: "Max Yaw: 3.0 rad/s (42%)")
     
     private let wifiClient = CWWiFiClient.shared()
     private var lastObservedSSID: String?
@@ -596,28 +596,49 @@ class StatusWindowController: NSWindowController {
     @objc private func eulerAngleChanged(_ sender: NSSlider) {
         let radians = sender.doubleValue
         let degrees = radians * 180.0 / .pi
-        eulerAngleLabel.stringValue = String(format: "Max Angle: %.0f°", degrees)
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        eulerAngleLabel.stringValue = String(format: "Max Angle: %.0f° (%d%%)", degrees, percentage)
         droneController.setConfig(key: "control:euler_angle_max", value: String(format: "%.2f", radians))
     }
     
     @objc private func altitudeMaxChanged(_ sender: NSSlider) {
         let millimeters = Int(sender.doubleValue)
         let meters = Double(millimeters) / 1000.0
-        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %.1f m", meters)
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        altitudeMaxLabel.stringValue = String(format: "Max Altitude: %.1f m (%d%%)", meters, percentage)
         droneController.setConfig(key: "control:altitude_max", value: "\(millimeters)")
     }
     
     @objc private func vzMaxChanged(_ sender: NSSlider) {
         let mmPerSec = Int(sender.doubleValue)
-        let kmPerHour = Double(mmPerSec) * 3.6 / 1000.0  // mm/s to km/h
-        vzMaxLabel.stringValue = String(format: "Max V Speed: %.1f km/h", kmPerHour)
+        let mPerSec = Double(mmPerSec) / 1000.0  // mm/s to m/s
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        vzMaxLabel.stringValue = String(format: "Max V Speed: %.2f m/s (%d%%)", mPerSec, percentage)
         droneController.setConfig(key: "control:control_vz_max", value: "\(mmPerSec)")
     }
     
     @objc private func yawMaxChanged(_ sender: NSSlider) {
         let value = sender.doubleValue
-        yawMaxLabel.stringValue = String(format: "Max Yaw: %.1f rad/s", value)
+        let percentage = Int((sender.doubleValue - sender.minValue) / (sender.maxValue - sender.minValue) * 100)
+        yawMaxLabel.stringValue = String(format: "Max Yaw: %.1f rad/s (%d%%)", value, percentage)
         droneController.setConfig(key: "control:control_yaw", value: String(format: "%.2f", value))
+    }
+    
+    // Public methods for gamepad button control
+    func adjustEulerAngle(by percentChange: Double) {
+        let range = eulerAngleSlider.maxValue - eulerAngleSlider.minValue
+        let change = range * (percentChange / 100.0)
+        let newValue = max(eulerAngleSlider.minValue, min(eulerAngleSlider.maxValue, eulerAngleSlider.doubleValue + change))
+        eulerAngleSlider.doubleValue = newValue
+        eulerAngleChanged(eulerAngleSlider)
+    }
+    
+    func adjustVzMax(by percentChange: Double) {
+        let range = vzMaxSlider.maxValue - vzMaxSlider.minValue
+        let change = range * (percentChange / 100.0)
+        let newValue = max(vzMaxSlider.minValue, min(vzMaxSlider.maxValue, vzMaxSlider.doubleValue + change))
+        vzMaxSlider.doubleValue = newValue
+        vzMaxChanged(vzMaxSlider)
     }
     
     @objc private func ssidFieldChanged(_ sender: NSTextField) {

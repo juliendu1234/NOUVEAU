@@ -14,6 +14,7 @@ import IOKit.hid
 class GamepadManager {
     
     private let droneController: ARDroneController
+    private weak var statusWindowController: StatusWindowController?
     private var currentController: GCController?
     private var isFlying = false
     
@@ -30,6 +31,10 @@ class GamepadManager {
     
     init(droneController: ARDroneController) {
         self.droneController = droneController
+    }
+    
+    func setStatusWindowController(_ controller: StatusWindowController) {
+        self.statusWindowController = controller
     }
     
     // MARK: - Controller Monitoring
@@ -300,6 +305,34 @@ class GamepadManager {
         gamepad.dpad.right.pressedChangedHandler = { [weak self] (button, value, pressed) in
             if pressed {
                 _ = self?.droneController.capturePhoto()
+            }
+        }
+        
+        // L1 (Left Shoulder) - V Speed +5%
+        gamepad.leftShoulder.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if pressed {
+                self?.statusWindowController?.adjustVzMax(by: 5.0)
+            }
+        }
+        
+        // R1 (Right Shoulder) - Angle Max +5%
+        gamepad.rightShoulder.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if pressed {
+                self?.statusWindowController?.adjustEulerAngle(by: 5.0)
+            }
+        }
+        
+        // L2 (Left Trigger) - V Speed -5% (trigger at 90%)
+        gamepad.leftTrigger.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if value >= 0.9 {
+                self?.statusWindowController?.adjustVzMax(by: -5.0)
+            }
+        }
+        
+        // R2 (Right Trigger) - Angle Max -5% (trigger at 90%)
+        gamepad.rightTrigger.pressedChangedHandler = { [weak self] (button, value, pressed) in
+            if value >= 0.9 {
+                self?.statusWindowController?.adjustEulerAngle(by: -5.0)
             }
         }
         

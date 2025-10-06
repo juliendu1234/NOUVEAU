@@ -43,6 +43,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, CLLocationManagerDelegate {
         statusWindow = StatusWindowController(droneController: droneController)
         statusWindow?.window?.makeKeyAndOrderFront(nil)
         
+        // Pass statusWindow to gamepadManager for slider control
+        gamepadManager?.setStatusWindowController(statusWindow!)
+        
         // EMPÊCHER LA PERTE DE FOCUS
         statusWindow?.window?.level = .floating  // Toujours au-dessus
         statusWindow?.window?.collectionBehavior = [.canJoinAllSpaces, .fullScreenPrimary]
